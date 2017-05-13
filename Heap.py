@@ -4,6 +4,7 @@ class Heap(object):
     def __init__(self, kind='min'):
         self.heap = []
         self.size = 0
+        self.kind = kind
         if kind == 'min':
             self.op = lt
         elif kind == 'max':
@@ -45,6 +46,11 @@ class Heap(object):
                         self[i-1, j-1]
                         self.bubble_down(j)
                 elif op(lf, nd):
+                    self[i-1, j-1]
+                    self.bubble_down(j)
+            elif (j <= size):
+                lf = self[j-1]
+                if op(lf, nd):
                     self[i-1, j-1]
                     self.bubble_down(j)
 
@@ -89,6 +95,27 @@ class Heap(object):
         
     def __repr__(self):
         return 'Extreme: {}  Size: {}\nHeap: {}\n'.format(self.extreme, self.size, str(self.heap))
+    
+    def __bool__(self):
+        return bool(self.heap)
+    
+    def __lt__(self, other):
+        return self.extreme < other.extreme
+    
+    def __le__(self, other):
+        return self.extreme <= other.extreme
+    
+    def __gt__(self, other):
+        return self.extreme > other.extreme
+    
+    def __ge__(self, other):
+        return self.extreme >= other.extreme
+    
+    def __eq__(self, other):
+        return self.extreme == other.extreme
+    
+    def __ne__(self, other):
+        return self.extreme != other.extreme
     
     def query(self, kind, arg=None):
         if kind == 1:
