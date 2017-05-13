@@ -1,58 +1,99 @@
+from operator import lt, gt
+
 class Heap(object):
-    def __init__(self):
-        self.stack = []
+    def __init__(self, kind='min'):
+        self.heap = []
         self.size = 0
-        
+        if kind == 'min':
+            self.op = lt
+        elif kind == 'max':
+            self.op = gt
+        else:
+            raise ValueError('`kind` needs to be "min" or "max"')
+
     def insert(self, x):
-        self.stack.append(x)
+        heap = self.heap
+        heap.append(x)
         self.size += 1
-        nd_i = self.size - 1
-        up_i = self.size // 2 - 1
-        while (up_i >= 0) and (self.stack[nd_i] > self.stack[up_i]):
-            self.stack[nd_i], self.stack[up_i] = self.stack[up_i], self.stack[nd_i]
-            nd_i = up_i
-            up_i = (nd_i + 1) // 2 - 1
+        self.bubble_up(self.size)
+        
+    def bubble_up(self, i):
+        if 1 < i <= self.size:
+            heap = self.heap
+            j = i // 2
+            node = heap[i - 1]
+            up = heap[j - 1]
+            if self.op(node, up):
+                self[i-1, j-1]
+                self.bubble_up(j)    
+    
+    def bubble_down(self, i):
+        size, op = self.size, self.op
+        if 1 <= i < size:
+            heap = self.heap
+            nd = self[i-1]
+            j = i * 2
+            k = j + 1
+            if k <= size:
+                rt = self[k-1]
+                lf = self[j-1]
+                if op(rt, nd):
+                    if op(rt, lf):
+                        self[i-1, k-1]
+                        self.bubble_down(k)
+                    elif op(lf, nd):
+                        self[i-1, j-1]
+                        self.bubble_down(j)
+                elif op(lf, nd):
+                    self[i-1, j-1]
+                    self.bubble_down(j)
+
+    def del_idx(self, idx):
+        heap = self.heap
+        if 0 <= idx < self.size:
+            end = heap.pop()
+            self.size -= 1
+            if idx < self.size:
+                heap[idx] = end
+                self.bubble_down(idx + 1)
+            
+    def del_item(self, item):
+        try:
+            self.del_idx(self.heap.index(item))
+        except ValueError as e:
+            raise ValueError('{} is not in the heap'.format(item))
+            
+    def pop_extreme(self):
+        extreme = self.extreme
+        self.del_idx(0)
+        return extreme
+
             
     @property
-    def max(self):
-        if self.stack:
-            return self.stack[0]
-    
-    def pop(self):
-        mx = self.max
-        if self.size == 1:
-            self.stack = []
-            self.size -= 1
-        elif self.size > 1:
-            self.stack[0] = self.stack.pop()
-            self.size -= 1
-            self.bubble_down(0)
+    def extreme(self):
+        if self.heap:
+            return self.heap[0]
 
-        return mx
-    
-    def bubble_down(self, nd_i):
-        lf_i = (nd_i + 1) * 2 - 1
-        rt_i = lf_i + 1
-        if rt_i < self.size:
-            rt = self[rt_i]
-            nd = self[nd_i]
-            lf = self[lf_i]
-            if (rt > nd) and (rt > lf):
-                self[nd_i, rt_i]
-                self.bubble_down(rt_i)
-            elif lf > nd:
-                self[nd_i, lf_i]
-                self.bubble_down(lf_i)
-        elif (lf_i < self.size) and (self[lf_i] > self[nd_i]):
-            self[nd_i, lf_i]
-            self.bubble_down(lf_i)
-                
+    @property
+    def pextreme(self):
+        if self.heap:
+            print(self.heap[0])
+
     def __getitem__(self, items):
+        heap = self.heap
         try:
             i, j = items
-            self.stack[i], self.stack[j] = self[j], self[i]
+            heap[i], heap[j] = heap[j], heap[i]
         except:
-            return self.stack[items]
+            return heap[items]
         
     def __repr__(self):
-        return 'Max: {}  Size: {}\nStack: {}\n'.format(self.max, self.size, str(self.stack))
+        return 'Extreme: {}  Size: {}\nHeap: {}\n'.format(self.extreme, self.size, str(self.heap))
+    
+    def query(self, kind, arg=None):
+        if kind == 1:
+            self.insert(arg)
+        elif kind == 2:
+            self.del_item(arg)
+        elif kind == 3:
+            self.pextreme
