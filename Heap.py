@@ -1,5 +1,6 @@
 from operator import lt, gt
 
+
 class Heap(object):
     def __init__(self, kind='min'):
         self.heap = []
