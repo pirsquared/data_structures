@@ -1,127 +1,108 @@
-from operator import lt, gt
+import numpy as np
 
 
 class Heap(object):
-    def __init__(self, kind='min'):
-        self.heap = []
-        self.size = 0
-        self.kind = kind
-        if kind == 'min':
-            self.op = lt
-        elif kind == 'max':
-            self.op = gt
+    def __init__(self, a):
+
+        self.heap = np.asarray(a)
+        self._build()
+
+    def _children(self, i, filt=True):
+
+        k = 2 * i + 1
+        if filt:
+            return np.array([j for j in [i, k, k + 1] if self._is_node(j)])
         else:
-            raise ValueError('`kind` needs to be "min" or "max"')
+            return np.array([i, k, k + 1])
 
-    def insert(self, x):
-        heap = self.heap
-        heap.append(x)
-        self.size += 1
-        self.bubble_up(self.size)
-        
-    def bubble_up(self, i):
-        if 1 < i <= self.size:
-            heap = self.heap
-            j = i // 2
-            node = heap[i - 1]
-            up = heap[j - 1]
-            if self.op(node, up):
-                self[i-1, j-1]
-                self.bubble_up(j)    
-    
-    def bubble_down(self, i):
-        size, op = self.size, self.op
-        if 1 <= i < size:
-            heap = self.heap
-            nd = self[i-1]
-            j = i * 2
-            k = j + 1
-            if k <= size:
-                rt = self[k-1]
-                lf = self[j-1]
-                if op(rt, nd):
-                    if op(rt, lf):
-                        self[i-1, k-1]
-                        self.bubble_down(k)
-                    elif op(lf, nd):
-                        self[i-1, j-1]
-                        self.bubble_down(j)
-                elif op(lf, nd):
-                    self[i-1, j-1]
-                    self.bubble_down(j)
-            elif (j <= size):
-                lf = self[j-1]
-                if op(lf, nd):
-                    self[i-1, j-1]
-                    self.bubble_down(j)
+    @staticmethod
+    def _parent(i):
+        return (i + 1) // 2 - 1
 
-    def del_idx(self, idx):
-        heap = self.heap
-        if 0 <= idx < self.size:
-            end = heap.pop()
-            self.size -= 1
-            if idx < self.size:
-                heap[idx] = end
-                self.bubble_down(idx + 1)
-            
-    def del_item(self, item):
-        try:
-            self.del_idx(self.heap.index(item))
-        except ValueError as e:
-            raise ValueError('{} is not in the heap'.format(item))
-            
-    def pop_extreme(self):
-        extreme = self.extreme
-        self.del_idx(0)
-        return extreme
+    def _is_node(self, i):
+        return 0 <= i < self.size
 
-            
-    @property
-    def extreme(self):
-        if self.heap:
-            return self.heap[0]
+    def _build(self):
+
+        i = self.start
+        while i >= 0:
+            self._swap(i)
+            i -= 1
+
+    def _swap(self, i):
+
+        c = self._children(i)
+        m = self.heap[c].argmax()
+        if m > 0:
+            self.heap[c[[0, m]]] = self.heap[c[[m, 0]]]
+            self._swap(c[m])
+
+    def _up(self, i):
+
+        p = self._parent(i)
+        if self._is_node(p) and self.heap[i] > self.heap[p]:
+            self.heap[[i, p]] = self.heap[[p, i]]
+            self._up(p)
+
+    def insert(self, n):
+
+        self.heap = np.append(self.heap, n)
+        self._up(self.size - 1)
+
+    def max(self):
+
+        return self.heap[0]
+
+    def pop(self):
+
+        m = self.max()
+        self.heap[0] = self.heap[-1]
+        self.heap = self.heap[:-1]
+
+        self._swap(0)
+
+        return m
 
     @property
-    def pextreme(self):
-        if self.heap:
-            print(self.heap[0])
+    def size(self):
 
-    def __getitem__(self, items):
-        heap = self.heap
-        try:
-            i, j = items
-            heap[i], heap[j] = heap[j], heap[i]
-        except:
-            return heap[items]
-        
+        return len(self.heap)
+
+    @property
+    def start(self):
+
+        return (self.size + 1) // 2 - 1
+
+    @property
+    def _levels(self):
+
+        return int(np.log2(self.size + 1))
+
+    def _is_level(self, i):
+
+        return int(np.log2(i + 1)) <= self._levels
+
     def __repr__(self):
-        return 'Extreme: {}  Size: {}\nHeap: {}\n'.format(self.extreme, self.size, str(self.heap))
-    
-    def __bool__(self):
-        return bool(self.heap)
-    
-    def __lt__(self, other):
-        return self.extreme < other.extreme
-    
-    def __le__(self, other):
-        return self.extreme <= other.extreme
-    
-    def __gt__(self, other):
-        return self.extreme > other.extreme
-    
-    def __ge__(self, other):
-        return self.extreme >= other.extreme
-    
-    def __eq__(self, other):
-        return self.extreme == other.extreme
-    
-    def __ne__(self, other):
-        return self.extreme != other.extreme
-    
-    def query(self, kind, arg=None):
-        if kind == 1:
-            self.insert(arg)
-        elif kind == 2:
-            self.del_item(arg)
-        elif kind == 3:
-            self.pextreme
+
+        return self.heap.__repr__()
+
+    def _show_node(self, i, horizontal=True):
+
+        i, l, r = self._children(i, filt=False)
+
+        base = Str2d(
+            str(self.heap[i]) if self._is_node(i) else ' ',
+            height=2, width=5
+        )
+
+        if self._is_level(l):
+            if horizontal:
+                base = base / (
+                        self._show_node(l, horizontal) + self._show_node(r, horizontal)
+                )
+            else:
+                base = base + (
+                        self._show_node(l, horizontal) / self._show_node(r, horizontal)
+                )
+
+        return base
